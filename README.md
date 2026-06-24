@@ -1,48 +1,14 @@
 # Active-Directory-Automation-Lab
-Import-Module ActiveDirectory
+ # Enterprise Identity & Access Management (IAM) Automation
 
-$CSVPath = "C:\ServerLogs\NewHires.csv"
+## Project Overview
+This repository features a production-grade identity orchestration solution designed to automate bulk user provisioning natively within Active Directory Domain Services (AD DS). The solution parses structured human resources data (`.csv`) to automatically generate corporate identities, standardize account naming conventions, and assign granular resource attributes.
 
-if (-not (Test-Path $CSVPath)) {
-    Write-Error "HR CSV file not found at $CSVPath" -ForegroundColor Red
-    exit
-}
 
-# Pull the active domain suffix (e.g., azure.local) automatically
-$DNSRoot = (Get-ADDomain).DNSRoot
-$Users = Import-Csv -Path $CSVPath
 
-foreach ($User in $Users) {
-    # Define Corporate Username Standards
-    $SAMAccountName = ($User.FirstName.Substring(0,1) + $User.LastName).ToLower()
-    $UserPrincipalName = "$SAMAccountName@$DNSRoot"
-    $DisplayName = "$($User.LastName), $($User.FirstName)"
-    $Email = "$SAMAccountName@company.ie"
-    $Password = ConvertTo-SecureString "TempWelcome2026!" -AsPlainText -Force
-    
-    Write-Host "Evaluating Identity: $SAMAccountName..." -ForegroundColor Cyan
-
-    # Check if user already exists inside Active Directory
-    $ExistingUser = Get-ADUser -Filter "SamAccountName -eq '$SAMAccountName'" -ErrorAction SilentlyContinue
-
-    if ($ExistingUser) {
-        Write-Host " -> SKIPPED: $SAMAccountName already exists in Active Directory." -ForegroundColor Yellow
-    } else {
-        # Create Native Active Directory User Account
-        New-ADUser -Name $DisplayName `
-                   -SamAccountName $SAMAccountName `
-                   -UserPrincipalName $UserPrincipalName `
-                   -DisplayName $DisplayName `
-                   -GivenName $User.FirstName `
-                   -Surname $User.LastName `
-                   -Department $User.Department `
-                   -Title $User.Title `
-                   -Office $User.Office `
-                   -EmailAddress $Email `
-                   -AccountPassword $Password `
-                   -ChangePasswordAtLogon $true `
-                   -Enabled $true
-
-        Write-Host " -> SUCCESS: Created AD Account for $DisplayName" -ForegroundColor Green
-    }
-}
+## Capabilities Demonstrated
+* **Native Active Directory Integration:** Developed using the `ActiveDirectory` PowerShell core module, utilizing native cmdlets (`New-ADUser`, `Get-ADUser`) to directly modify the enterprise domain controller database.
+* **Bulk Lifecycle Automation:** Eliminates manual administrative overhead by processing multi-attribute employee rosters instantly.
+* **Data Normalization & Sanitization:** Implements algorithmic string manipulation to dynamically construct standardized corporate `SAMAccountName` and `UserPrincipalName` criteria.
+* **Defensive Exception Handling:** Incorporates robust state checking to identify pre-existing network directory records, ensuring execution continuity without duplicative identity conflicts.
+* **Security Compliance Enforcement:** Dynamically provisions temporary strong passwords while forcing an explicit object flag parameter requiring a password reset at next interactive network login (`-ChangePasswordAtLogon $true`).
